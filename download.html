@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download TikTok Bot Pro</title>
+<meta http-equiv="refresh" content="2; url=https://github.com/aripkudus/tiktok-bot-pro-releases/releases/latest/download/TikTokBotPro.exe">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(ellipse at top, #1a2240 0%, #0e0e10 60%);
+    color: #e6e6e6;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .box {
+    text-align: center;
+    max-width: 480px;
+  }
+  .mark {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, #1e4ec4, #267fe6);
+    border-radius: 16px;
+    color: white;
+    font-weight: 900;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    position: relative;
+  }
+  .mark::after {
+    content: "";
+    position: absolute;
+    bottom: 6px; right: 6px;
+    width: 12px; height: 12px;
+    background: #ff6464;
+    border-radius: 50%;
+  }
+  h1 {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+  p {
+    color: #b8c5d8;
+    font-size: 14px;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #2a3a6a;
+    border-top-color: #5db1ff;
+    border-radius: 50%;
+    margin: 16px auto;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background: #267fe6;
+    color: #fff !important;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .btn:hover { background: #3a92f0; }
+  .small {
+    font-size: 11px;
+    color: #777;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="mark">TB</div>
+    <h1>Memulai download...</h1>
+    <p>TikTok Bot Pro (versi terbaru, ~88 MB).<br>Download akan otomatis mulai dalam 2 detik.</p>
+    <div class="spinner"></div>
+    <p style="margin-top:24px;">Kalau tidak otomatis:</p>
+    <a class="btn" id="manual" href="https://github.com/aripkudus/tiktok-bot-pro-releases/releases/latest/download/TikTokBotPro.exe">⬇ Download Manual</a>
+    <p class="small">
+      Setelah download, lihat <a href="/TikTokBotPro-Panduan.pdf" style="color:#5db1ff;">Panduan PDF</a> untuk setup awal.
+    </p>
+  </div>
+  <script>
+    // Fallback JS redirect (immediate kalau JS aktif)
+    setTimeout(function() {
+      window.location.href = document.getElementById("manual").href;
+    }, 800);
+  </script>
+</body>
+</html>
