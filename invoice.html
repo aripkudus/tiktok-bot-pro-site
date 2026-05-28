@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice — TikTok Bot Pro</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  background: #0e0e10;
+  color: #e6e6e6;
+  padding: 24px;
+  line-height: 1.5;
+}
+
+/* ===== Form panel (admin/seller view) ===== */
+.admin-form {
+  max-width: 920px;
+  margin: 0 auto 32px;
+  background: #1a1a20;
+  border: 1px solid #2a2a32;
+  border-radius: 10px;
+  padding: 24px;
+}
+.admin-form h2 {
+  color: #5db1ff;
+  font-size: 16px;
+  margin-bottom: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-form .grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.admin-form label {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+.admin-form input, .admin-form select {
+  width: 100%;
+  padding: 8px 12px;
+  background: #0e0e10;
+  border: 1px solid #2a2a32;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+}
+.admin-form input:focus, .admin-form select:focus {
+  outline: none;
+  border-color: #267fe6;
+}
+.admin-form .row-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.btn {
+  padding: 10px 18px;
+  background: #267fe6;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:hover { background: #3a92f0; }
+.btn-ghost {
+  background: #2a2a32;
+  color: #ccc;
+}
+.btn-ghost:hover { background: #3a3a42; }
+.btn-print {
+  background: #2d7a3a;
+}
+.btn-print:hover { background: #348a44; }
+
+/* ===== Invoice ===== */
+.invoice {
+  max-width: 920px;
+  margin: 0 auto;
+  background: #fff;
+  color: #1f1f24;
+  border-radius: 10px;
+  padding: 48px;
+  font-size: 13px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+.invoice .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 28px;
+  border-bottom: 2px solid #267fe6;
+  margin-bottom: 28px;
+}
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-mark {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #1e4ec4, #267fe6);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 900;
+  font-size: 18px;
+  position: relative;
+}
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 9px;
+  height: 9px;
+  background: #ff6464;
+  border-radius: 50%;
+}
+.brand-block .name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0e0e10;
+}
+.brand-block .url {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+}
+.invoice-title {
+  text-align: right;
+}
+.invoice-title h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: #267fe6;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.invoice-title .meta {
+  color: #555;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.invoice-title .meta b {
+  color: #0e0e10;
+  font-family: "Consolas", monospace;
+}
+
+.parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 28px;
+}
+.party h3 {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: #999;
+  font-weight: 700;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.party .name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0e0e10;
+  margin-bottom: 2px;
+}
+.party .detail {
+  color: #555;
+  font-size: 12px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+.items-table thead th {
+  background: #f4f5f8;
+  padding: 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e4ec4;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.items-table thead th:last-child { text-align: right; }
+.items-table tbody td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+}
+.items-table tbody td:last-child { text-align: right; }
+.items-table .item-desc {
+  font-weight: 700;
+  font-size: 13px;
+  color: #0e0e10;
+  margin-bottom: 4px;
+}
+.items-table .item-sub {
+  font-size: 11px;
+  color: #777;
+  line-height: 1.6;
+}
+.items-table .item-sub code {
+  font-family: "Consolas", monospace;
+  background: #f4f5f8;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.totals {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 28px;
+}
+.totals-box {
+  width: 280px;
+}
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #555;
+}
+.totals-row.grand {
+  border-top: 2px solid #267fe6;
+  padding-top: 14px;
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0e0e10;
+}
+.totals-row.grand .val { color: #267fe6; }
+
+.payment-info {
+  background: #f7faff;
+  border-left: 4px solid #267fe6;
+  padding: 16px 20px;
+  border-radius: 6px;
+  margin-bottom: 24px;
+}
+.payment-info h3 {
+  font-size: 12px;
+  color: #1e4ec4;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.payment-info .field {
+  display: flex;
+  font-size: 12px;
+  padding: 4px 0;
+}
+.payment-info .key {
+  width: 110px;
+  color: #777;
+}
+.payment-info .val {
+  flex: 1;
+  color: #1f1f24;
+  word-break: break-all;
+  font-family: "Consolas", monospace;
+}
+.status-paid {
+  background: #2d7a3a;
+  color: #fff;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit !important;
+}
+
+.notes {
+  background: #fff8e6;
+  border-left: 4px solid #ffb300;
+  padding: 14px 18px;
+  border-radius: 6px;
+  margin-bottom: 24px;
+  font-size: 12px;
+  color: #555;
+  line-height: 1.7;
+}
+.notes h3 {
+  font-size: 11px;
+  color: #c47c00;
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.notes ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.notes li { margin-bottom: 3px; }
+
+.footer {
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+  text-align: center;
+  font-size: 11px;
+  color: #888;
+  line-height: 1.7;
+}
+.footer .thanks {
+  font-size: 14px;
+  color: #267fe6;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+/* ===== Print ===== */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+    padding: 0;
+  }
+  .admin-form, .print-only-hide {
+    display: none !important;
+  }
+  .invoice {
+    box-shadow: none;
+    padding: 0;
+    max-width: none;
+    margin: 0;
+  }
+  @page {
+    size: A4;
+    margin: 18mm 16mm;
+  }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 720px) {
+  .invoice { padding: 24px; }
+  .invoice .header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .invoice-title { text-align: left; }
+  .parties { grid-template-columns: 1fr; gap: 18px; }
+  .admin-form .grid { grid-template-columns: 1fr; }
+  .totals { justify-content: stretch; }
+  .totals-box { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─────────── ADMIN FORM (di-hide saat print) ─────────── -->
+<div class="admin-form" id="admin-form">
+  <h2>⚙️ Generator Invoice (Admin View)</h2>
+  <p style="color:#888;font-size:12px;margin-bottom:14px;">
+    Isi field di bawah, klik <b>Update Invoice</b>, lalu <b>Print as PDF</b> untuk kirim ke customer.
+    URL bisa di-share dengan param: <code style="background:#0e0e10;padding:2px 6px;border-radius:3px;color:#5db1ff;">invoice.html?name=...&amp;email=...&amp;key=...</code>
+  </p>
+  <div class="grid">
+    <div>
+      <label>No. Invoice</label>
+      <input id="f-inv" placeholder="INV2026-001" />
+    </div>
+    <div>
+      <label>Tanggal</label>
+      <input id="f-date" type="date" />
+    </div>
+    <div>
+      <label>Nama Customer</label>
+      <input id="f-name" placeholder="Nama lengkap" />
+    </div>
+    <div>
+      <label>Email Customer</label>
+      <input id="f-email" placeholder="email@example.com" />
+    </div>
+    <div>
+      <label>License Key</label>
+      <input id="f-key" placeholder="XXXX-XXXX-XXXX-XXXX" />
+    </div>
+    <div>
+      <label>Durasi (hari)</label>
+      <input id="f-period" type="number" value="30" min="1" />
+    </div>
+    <div>
+      <label>Network</label>
+      <select id="f-network">
+        <option value="BEP20">BEP20 (BSC)</option>
+        <option value="TRC20">TRC20 (Tron)</option>
+      </select>
+    </div>
+    <div>
+      <label>TX Hash</label>
+      <input id="f-tx" placeholder="0x... atau Tron hash" />
+    </div>
+    <div>
+      <label>Jumlah (USDT)</label>
+      <input id="f-amount" type="number" value="199" min="1" step="0.01" />
+    </div>
+    <div>
+      <label>Status</label>
+      <select id="f-status">
+        <option value="PAID">PAID ✓</option>
+        <option value="PENDING">PENDING</option>
+      </select>
+    </div>
+  </div>
+  <div class="row-actions">
+    <button class="btn" onclick="updateInvoice()">🔄 Update Invoice</button>
+    <button class="btn btn-print" onclick="window.print()">🖨️ Print as PDF</button>
+    <button class="btn btn-ghost" onclick="copyShareLink()">🔗 Salin Link Share</button>
+  </div>
+</div>
+
+<!-- ─────────── INVOICE ─────────── -->
+<div class="invoice" id="invoice">
+  <div class="header">
+    <div class="brand-block">
+      <div class="brand-mark">TB</div>
+      <div>
+        <div class="name">TikTok Bot Pro</div>
+        <div class="url">toktokbot.pro</div>
+      </div>
+    </div>
+    <div class="invoice-title">
+      <h1>INVOICE</h1>
+      <div class="meta">
+        No: <b id="inv-no">INV2026-001</b><br>
+        Tanggal: <b id="inv-date">28 Mei 2026</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="parties">
+    <div class="party">
+      <h3>Issued By</h3>
+      <div class="name">TikTok Bot Pro</div>
+      <div class="detail">
+        WhatsApp: <b>+62 878-7831-4577</b><br>
+        Web: toktokbot.pro
+      </div>
+    </div>
+    <div class="party">
+      <h3>Bill To</h3>
+      <div class="name" id="inv-name">Nama Customer</div>
+      <div class="detail" id="inv-email">email@example.com</div>
+    </div>
+  </div>
+
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th>Deskripsi</th>
+        <th style="width:80px;">Qty</th>
+        <th style="width:120px;">Harga</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <div class="item-desc">TikTok Bot Pro — Subscription License</div>
+          <div class="item-sub">
+            Durasi: <b id="inv-period">30</b> hari<br>
+            License Key: <code id="inv-key">XXXX-XXXX-XXXX-XXXX</code><br>
+            1 PC (machine-locked) · Unlimited akun TikTok · Auto-update
+          </div>
+        </td>
+        <td>1</td>
+        <td><b id="inv-amount">199 USDT</b></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="totals-box">
+      <div class="totals-row"><span>Subtotal</span><span class="val" id="inv-subtotal">199 USDT</span></div>
+      <div class="totals-row"><span>Tax / Fee</span><span class="val">0 USDT</span></div>
+      <div class="totals-row grand"><span>Total</span><span class="val" id="inv-total">199 USDT</span></div>
+    </div>
+  </div>
+
+  <div class="payment-info">
+    <h3>Informasi Pembayaran</h3>
+    <div class="field">
+      <span class="key">Metode</span>
+      <span class="val">USDT (Crypto)</span>
+    </div>
+    <div class="field">
+      <span class="key">Network</span>
+      <span class="val" id="inv-network">BEP20 (BSC)</span>
+    </div>
+    <div class="field">
+      <span class="key">TX Hash</span>
+      <span class="val" id="inv-tx">—</span>
+    </div>
+    <div class="field">
+      <span class="key">Wallet</span>
+      <span class="val" id="inv-wallet">0xafebf40819115a943180f62d5dd46ad8fb71dac9</span>
+    </div>
+    <div class="field">
+      <span class="key">Status</span>
+      <span class="val"><span class="status-paid" id="inv-status">PAID ✓</span></span>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h3>Catatan &amp; Syarat</h3>
+    <ul>
+      <li>License bersifat machine-locked (mengikat ke 1 PC). Reset binding via WA admin kalau ganti PC.</li>
+      <li>Subscription bulanan, otomatis non-aktif setelah expired. Renewal via WhatsApp.</li>
+      <li>Pembayaran USDT bersifat final. Garansi refund 24 jam kalau bot tidak bisa jalan di PC customer.</li>
+      <li>Support via WhatsApp +62 878-7831-4577 (09:00–21:00 WIB).</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    <div class="thanks">Terima kasih atas pembelian Anda! 🎉</div>
+    Untuk download .exe, panduan, dan release terbaru:<br>
+    <b>toktokbot.pro</b>
+  </div>
+</div>
+
+<script>
+// ── Helpers ──
+function $(id) { return document.getElementById(id); }
+function fmtDate(d) {
+  const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+                  "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+  const dt = new Date(d);
+  return `${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+}
+function isoToday() {
+  const d = new Date();
+  return d.toISOString().split("T")[0];
+}
+function autoInvoiceNo() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const ts = Math.floor(d.getTime() / 1000) % 10000;
+  return `INV${y}-${String(ts).padStart(4, "0")}`;
+}
+
+// ── Wallet addresses ──
+const WALLETS = {
+  BEP20: "0xafebf40819115a943180f62d5dd46ad8fb71dac9",
+  TRC20: "TL4dfibanQKDBmRxCy1uZnuZ3fyq2wTCMT",
+};
+
+// ── Read URL params ──
+function readParams() {
+  const p = new URLSearchParams(window.location.search);
+  if (p.get("inv")) $("f-inv").value = p.get("inv");
+  if (p.get("date")) $("f-date").value = p.get("date");
+  if (p.get("name")) $("f-name").value = p.get("name");
+  if (p.get("email")) $("f-email").value = p.get("email");
+  if (p.get("key")) $("f-key").value = p.get("key");
+  if (p.get("period")) $("f-period").value = p.get("period");
+  if (p.get("network")) $("f-network").value = p.get("network");
+  if (p.get("tx")) $("f-tx").value = p.get("tx");
+  if (p.get("amount")) $("f-amount").value = p.get("amount");
+  if (p.get("status")) $("f-status").value = p.get("status");
+}
+
+// ── Update invoice render ──
+function updateInvoice() {
+  const inv = $("f-inv").value.trim() || autoInvoiceNo();
+  const date = $("f-date").value || isoToday();
+  const name = $("f-name").value.trim() || "—";
+  const email = $("f-email").value.trim() || "—";
+  const key = $("f-key").value.trim() || "—";
+  const period = $("f-period").value || "30";
+  const network = $("f-network").value;
+  const tx = $("f-tx").value.trim() || "—";
+  const amount = $("f-amount").value || "199";
+  const status = $("f-status").value;
+
+  $("inv-no").textContent = inv;
+  $("inv-date").textContent = fmtDate(date);
+  $("inv-name").textContent = name;
+  $("inv-email").textContent = email;
+  $("inv-key").textContent = key;
+  $("inv-period").textContent = period;
+  $("inv-network").textContent = network + (network === "BEP20" ? " (BSC)" : " (Tron)");
+  $("inv-tx").textContent = tx;
+  $("inv-wallet").textContent = WALLETS[network] || "—";
+  $("inv-amount").textContent = amount + " USDT";
+  $("inv-subtotal").textContent = amount + " USDT";
+  $("inv-total").textContent = amount + " USDT";
+
+  const statusEl = $("inv-status");
+  if (status === "PAID") {
+    statusEl.textContent = "PAID ✓";
+    statusEl.style.background = "#2d7a3a";
+  } else {
+    statusEl.textContent = "PENDING";
+    statusEl.style.background = "#c47c00";
+  }
+}
+
+// ── Build share URL ──
+function copyShareLink() {
+  const p = new URLSearchParams({
+    inv: $("f-inv").value.trim(),
+    date: $("f-date").value,
+    name: $("f-name").value.trim(),
+    email: $("f-email").value.trim(),
+    key: $("f-key").value.trim(),
+    period: $("f-period").value,
+    network: $("f-network").value,
+    tx: $("f-tx").value.trim(),
+    amount: $("f-amount").value,
+    status: $("f-status").value,
+  });
+  const url = window.location.origin + window.location.pathname + "?" + p.toString();
+  navigator.clipboard.writeText(url).then(() => {
+    alert("Link tersalin ke clipboard:\n\n" + url);
+  }).catch(() => {
+    prompt("Copy link manual:", url);
+  });
+}
+
+// ── Init ──
+$("f-date").value = isoToday();
+$("f-inv").value = autoInvoiceNo();
+readParams();
+updateInvoice();
+</script>
+
+</body>
+</html>
