@@ -295,6 +295,45 @@ img { max-width: 100%; display: block; }
 }
 .footnote.center { margin-top: 16px; }
 
+/* ===== PDF Panduan card ===== */
+.pdf-card {
+  background: linear-gradient(135deg, #1a2540, #20305a);
+  border: 1px solid #2a3a6a;
+  border-radius: 14px;
+  padding: 28px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 880px;
+  margin: 0 auto;
+}
+.pdf-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+}
+.pdf-icon {
+  font-size: 52px;
+  line-height: 1;
+}
+.pdf-title {
+  font-size: 22px;
+  margin-bottom: 6px;
+  color: #fff;
+}
+.pdf-desc {
+  color: #b8c5d8;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.5;
+}
+@media (max-width: 720px) {
+  .pdf-card { flex-direction: column; text-align: center; padding: 24px; }
+  .pdf-info { flex-direction: column; gap: 12px; }
+}
+
 /* ===== Buy / Pay ===== */
 .steps {
   background: #1e1e24;
