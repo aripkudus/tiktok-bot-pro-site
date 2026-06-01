@@ -407,18 +407,19 @@ body {
       <input id="f-period" type="number" value="30" min="1" />
     </div>
     <div>
-      <label>Network</label>
+      <label>Metode Pembayaran</label>
       <select id="f-network">
-        <option value="BEP20">BEP20 (BSC)</option>
-        <option value="TRC20">TRC20 (Tron)</option>
+        <option value="BEP20">USDT — BEP20 (BSC)</option>
+        <option value="TRC20">USDT — TRC20 (Tron)</option>
+        <option value="IDR">Rupiah — Bank Transfer</option>
       </select>
     </div>
     <div>
-      <label>TX Hash</label>
-      <input id="f-tx" placeholder="0x... atau Tron hash" />
+      <label id="f-tx-label">TX Hash</label>
+      <input id="f-tx" placeholder="0x... / Tron hash / nomor resi" />
     </div>
     <div>
-      <label>Jumlah (USDT)</label>
+      <label id="f-amount-label">Jumlah (USDT)</label>
       <input id="f-amount" type="number" value="199" min="1" step="0.01" />
     </div>
     <div>
@@ -427,6 +428,10 @@ body {
         <option value="PAID">PAID ✓</option>
         <option value="PENDING">PENDING</option>
       </select>
+    </div>
+    <div id="f-bank-row" style="display:none; grid-column: span 2;">
+      <label>Info Bank (untuk tampil di invoice)</label>
+      <input id="f-bank" placeholder="BCA 1234567890 a.n. Nama Penerima" />
     </div>
   </div>
   <div class="row-actions">
@@ -507,18 +512,18 @@ body {
     <h3>Informasi Pembayaran</h3>
     <div class="field">
       <span class="key">Metode</span>
-      <span class="val">USDT (Crypto)</span>
+      <span class="val" id="inv-method">USDT (Crypto)</span>
     </div>
     <div class="field">
-      <span class="key">Network</span>
+      <span class="key" id="inv-network-label">Network</span>
       <span class="val" id="inv-network">BEP20 (BSC)</span>
     </div>
     <div class="field">
-      <span class="key">TX Hash</span>
+      <span class="key" id="inv-tx-key">TX Hash</span>
       <span class="val" id="inv-tx">—</span>
     </div>
     <div class="field">
-      <span class="key">Wallet</span>
+      <span class="key" id="inv-wallet-key">Wallet</span>
       <span class="val" id="inv-wallet">0xafebf40819115a943180f62d5dd46ad8fb71dac9</span>
     </div>
     <div class="field">
@@ -532,7 +537,7 @@ body {
     <ul>
       <li>License bersifat machine-locked (mengikat ke 1 PC). Reset binding via WA admin kalau ganti PC.</li>
       <li>Subscription bulanan, otomatis non-aktif setelah expired. Renewal via WhatsApp.</li>
-      <li>Pembayaran USDT bersifat final. Garansi refund 24 jam kalau bot tidak bisa jalan di PC customer.</li>
+      <li>Pembayaran bersifat final. Garansi refund 24 jam kalau bot tidak bisa jalan di PC customer.</li>
       <li>Support via WhatsApp +62 878-7831-4577 (09:00–21:00 WIB).</li>
     </ul>
   </div>
@@ -570,6 +575,54 @@ const WALLETS = {
   TRC20: "TL4dfibanQKDBmRxCy1uZnuZ3fyq2wTCMT",
 };
 
+// ── Default amounts (auto-fill saat ganti metode pembayaran) ──
+const DEFAULT_AMOUNT = {
+  BEP20: 199,
+  TRC20: 199,
+  IDR: 3538142,
+};
+
+// ── Format helpers ──
+function fmtIdr(amount) {
+  const n = parseInt(amount) || 0;
+  return "Rp " + new Intl.NumberFormat('id-ID').format(n);
+}
+function fmtAmount(amount, network) {
+  if (network === "IDR") return fmtIdr(amount);
+  return amount + " USDT";
+}
+function networkLabel(network) {
+  switch (network) {
+    case "BEP20": return "BEP20 (BSC)";
+    case "TRC20": return "TRC20 (Tron)";
+    case "IDR": return "Bank Transfer (IDR)";
+  }
+  return network;
+}
+function methodLabel(network) {
+  return network === "IDR" ? "Transfer Bank (Rupiah)" : "USDT (Crypto)";
+}
+
+// ── Toggle IDR-specific UI ──
+function applyMethodUi() {
+  const network = $("f-network").value;
+  const isIdr = network === "IDR";
+
+  $("f-bank-row").style.display = isIdr ? "block" : "none";
+  $("f-tx-label").textContent = isIdr ? "Bukti Transfer / Resi" : "TX Hash";
+  $("f-amount-label").textContent = isIdr ? "Jumlah (IDR)" : "Jumlah (USDT)";
+  $("f-tx").placeholder = isIdr ? "Nomor resi / referensi bank" : "0x... / Tron hash";
+}
+
+// ── Auto-fill default amount saat ganti metode ──
+function onNetworkSwitch(prevNetwork, newNetwork) {
+  // Hanya isi default kalau amount sekarang masih default lama (jangan replace kalau user sudah ubah)
+  const current = parseFloat($("f-amount").value);
+  if (current === DEFAULT_AMOUNT[prevNetwork]) {
+    $("f-amount").value = DEFAULT_AMOUNT[newNetwork];
+  }
+}
+
 // ── Read URL params ──
 function readParams() {
   const p = new URLSearchParams(window.location.search);
@@ -583,6 +636,7 @@ function readParams() {
   if (p.get("tx")) $("f-tx").value = p.get("tx");
   if (p.get("amount")) $("f-amount").value = p.get("amount");
   if (p.get("status")) $("f-status").value = p.get("status");
+  if (p.get("bank")) $("f-bank").value = p.get("bank");
 }
 
 // ── Update invoice render ──
@@ -595,8 +649,11 @@ function updateInvoice() {
   const period = $("f-period").value || "30";
   const network = $("f-network").value;
   const tx = $("f-tx").value.trim() || "—";
-  const amount = $("f-amount").value || "199";
+  const amount = $("f-amount").value || DEFAULT_AMOUNT[network];
   const status = $("f-status").value;
+  const bank = $("f-bank").value.trim();
+
+  const isIdr = network === "IDR";
 
   $("inv-no").textContent = inv;
   $("inv-date").textContent = fmtDate(date);
@@ -604,12 +661,23 @@ function updateInvoice() {
   $("inv-email").textContent = email;
   $("inv-key").textContent = key;
   $("inv-period").textContent = period;
-  $("inv-network").textContent = network + (network === "BEP20" ? " (BSC)" : " (Tron)");
+
+  // Payment info — labels + values berubah berdasarkan metode
+  $("inv-method").textContent = methodLabel(network);
+  $("inv-network-label").textContent = isIdr ? "Metode" : "Network";
+  $("inv-network").textContent = networkLabel(network);
+  $("inv-tx-key").textContent = isIdr ? "Bukti Transfer" : "TX Hash";
   $("inv-tx").textContent = tx;
-  $("inv-wallet").textContent = WALLETS[network] || "—";
-  $("inv-amount").textContent = amount + " USDT";
-  $("inv-subtotal").textContent = amount + " USDT";
-  $("inv-total").textContent = amount + " USDT";
+  $("inv-wallet-key").textContent = isIdr ? "Bank" : "Wallet";
+  $("inv-wallet").textContent = isIdr
+    ? (bank || "Konfirmasi via WhatsApp")
+    : (WALLETS[network] || "—");
+
+  // Amount — formatted
+  const fmt = fmtAmount(amount, network);
+  $("inv-amount").textContent = fmt;
+  $("inv-subtotal").textContent = fmt;
+  $("inv-total").textContent = fmt;
 
   const statusEl = $("inv-status");
   if (status === "PAID") {
@@ -623,7 +691,7 @@ function updateInvoice() {
 
 // ── Build share URL ──
 function copyShareLink() {
-  const p = new URLSearchParams({
+  const params = {
     inv: $("f-inv").value.trim(),
     date: $("f-date").value,
     name: $("f-name").value.trim(),
@@ -634,7 +702,10 @@ function copyShareLink() {
     tx: $("f-tx").value.trim(),
     amount: $("f-amount").value,
     status: $("f-status").value,
-  });
+  };
+  const bank = $("f-bank").value.trim();
+  if (bank) params.bank = bank;
+  const p = new URLSearchParams(params);
   const url = window.location.origin + window.location.pathname + "?" + p.toString();
   navigator.clipboard.writeText(url).then(() => {
     alert("Link tersalin ke clipboard:\n\n" + url);
@@ -643,10 +714,22 @@ function copyShareLink() {
   });
 }
 
+// ── Hook network change ──
+let lastNetwork = "BEP20";
+$("f-network").addEventListener("change", () => {
+  const newNet = $("f-network").value;
+  onNetworkSwitch(lastNetwork, newNet);
+  lastNetwork = newNet;
+  applyMethodUi();
+  updateInvoice();
+});
+
 // ── Init ──
 $("f-date").value = isoToday();
 $("f-inv").value = autoInvoiceNo();
 readParams();
+lastNetwork = $("f-network").value;
+applyMethodUi();
 updateInvoice();
 </script>
 
