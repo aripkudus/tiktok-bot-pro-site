@@ -433,6 +433,10 @@ body {
       <label>Info Bank (untuk tampil di invoice)</label>
       <input id="f-bank" placeholder="BCA 1234567890 a.n. Nama Penerima" />
     </div>
+    <div id="f-rate-row" style="display:none;">
+      <label>Kurs USDT/IDR (1 USDT = Rp ?) <span id="f-rate-status" style="color:#5db1ff;font-size:11px;"></span></label>
+      <input id="f-rate" type="number" value="17780" min="1" step="1" />
+    </div>
   </div>
   <div class="row-actions">
     <button class="btn" onclick="updateInvoice()">🔄 Update Invoice</button>
@@ -518,6 +522,14 @@ body {
       <span class="key" id="inv-network-label">Network</span>
       <span class="val" id="inv-network">BEP20 (BSC)</span>
     </div>
+    <div class="field" id="inv-rate-row" style="display:none;">
+      <span class="key">Kurs</span>
+      <span class="val" id="inv-rate">1 USDT = Rp 17.780</span>
+    </div>
+    <div class="field" id="inv-conversion-row" style="display:none;">
+      <span class="key">Konversi</span>
+      <span class="val" id="inv-conversion">199 USDT × Rp 17.780 = Rp 3.538.142</span>
+    </div>
     <div class="field">
       <span class="key" id="inv-tx-key">TX Hash</span>
       <span class="val" id="inv-tx">—</span>
@@ -576,11 +588,31 @@ const WALLETS = {
 };
 
 // ── Default amounts (auto-fill saat ganti metode pembayaran) ──
+const BASE_USDT = 199;  // Harga base subscription
+const FALLBACK_IDR_RATE = 17780;  // Kurs fallback kalau API gagal
 const DEFAULT_AMOUNT = {
-  BEP20: 199,
-  TRC20: 199,
-  IDR: 3538142,
+  BEP20: BASE_USDT,
+  TRC20: BASE_USDT,
+  IDR: BASE_USDT * FALLBACK_IDR_RATE,  // = 3.538.142
 };
+
+// ── Fetch kurs USDT/IDR dari CoinGecko (no API key needed) ──
+async function fetchUsdtIdrRate() {
+  $("f-rate-status").textContent = "(loading...)";
+  try {
+    const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=idr");
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    const rate = d?.tether?.idr;
+    if (typeof rate !== "number" || rate < 1000) throw new Error("invalid rate");
+    $("f-rate").value = Math.round(rate);
+    $("f-rate-status").textContent = "(live)";
+    return rate;
+  } catch (e) {
+    $("f-rate-status").textContent = "(offline, edit manual)";
+    return null;
+  }
+}
 
 // ── Format helpers ──
 function fmtIdr(amount) {
@@ -609,18 +641,36 @@ function applyMethodUi() {
   const isIdr = network === "IDR";
 
   $("f-bank-row").style.display = isIdr ? "block" : "none";
+  $("f-rate-row").style.display = isIdr ? "block" : "none";
   $("f-tx-label").textContent = isIdr ? "Bukti Transfer / Resi" : "TX Hash";
   $("f-amount-label").textContent = isIdr ? "Jumlah (IDR)" : "Jumlah (USDT)";
   $("f-tx").placeholder = isIdr ? "Nomor resi / referensi bank" : "0x... / Tron hash";
 }
 
 // ── Auto-fill default amount saat ganti metode ──
-function onNetworkSwitch(prevNetwork, newNetwork) {
-  // Hanya isi default kalau amount sekarang masih default lama (jangan replace kalau user sudah ubah)
+async function onNetworkSwitch(prevNetwork, newNetwork) {
+  // Saat switch ke IDR, fetch kurs fresh + recalc amount
+  if (newNetwork === "IDR") {
+    const rate = await fetchUsdtIdrRate();
+    if (rate) {
+      $("f-amount").value = Math.round(BASE_USDT * rate);
+    } else if (parseFloat($("f-amount").value) === DEFAULT_AMOUNT[prevNetwork]) {
+      $("f-amount").value = DEFAULT_AMOUNT[newNetwork];
+    }
+    return;
+  }
+  // Hanya isi default kalau amount sekarang masih default lama
   const current = parseFloat($("f-amount").value);
   if (current === DEFAULT_AMOUNT[prevNetwork]) {
     $("f-amount").value = DEFAULT_AMOUNT[newNetwork];
   }
+}
+
+// ── Saat user ubah kurs manual → auto-recalculate IDR amount ──
+function onRateChange() {
+  const rate = parseInt($("f-rate").value) || FALLBACK_IDR_RATE;
+  $("f-amount").value = Math.round(BASE_USDT * rate);
+  updateInvoice();
 }
 
 // ── Read URL params ──
@@ -673,6 +723,17 @@ function updateInvoice() {
     ? (bank || "Konfirmasi via WhatsApp")
     : (WALLETS[network] || "—");
 
+  // Kurs + konversi (hanya untuk IDR)
+  $("inv-rate-row").style.display = isIdr ? "flex" : "none";
+  $("inv-conversion-row").style.display = isIdr ? "flex" : "none";
+  if (isIdr) {
+    const rate = parseInt($("f-rate").value) || FALLBACK_IDR_RATE;
+    const rateFmt = new Intl.NumberFormat('id-ID').format(rate);
+    const amountFmt = new Intl.NumberFormat('id-ID').format(parseInt(amount) || 0);
+    $("inv-rate").textContent = `1 USDT = Rp ${rateFmt}`;
+    $("inv-conversion").textContent = `${BASE_USDT} USDT × Rp ${rateFmt} = Rp ${amountFmt}`;
+  }
+
   // Amount — formatted
   const fmt = fmtAmount(amount, network);
   $("inv-amount").textContent = fmt;
@@ -716,13 +777,16 @@ function copyShareLink() {
 
 // ── Hook network change ──
 let lastNetwork = "BEP20";
-$("f-network").addEventListener("change", () => {
+$("f-network").addEventListener("change", async () => {
   const newNet = $("f-network").value;
-  onNetworkSwitch(lastNetwork, newNet);
+  await onNetworkSwitch(lastNetwork, newNet);
   lastNetwork = newNet;
   applyMethodUi();
   updateInvoice();
 });
+
+// ── Hook rate change (manual override) ──
+$("f-rate").addEventListener("input", onRateChange);
 
 // ── Init ──
 $("f-date").value = isoToday();
@@ -731,6 +795,15 @@ readParams();
 lastNetwork = $("f-network").value;
 applyMethodUi();
 updateInvoice();
+// Kalau init dengan IDR (mis. via URL param), fetch kurs fresh
+if (lastNetwork === "IDR") {
+  fetchUsdtIdrRate().then(rate => {
+    if (rate) {
+      $("f-amount").value = Math.round(BASE_USDT * rate);
+      updateInvoice();
+    }
+  });
+}
 </script>
 
 </body>
